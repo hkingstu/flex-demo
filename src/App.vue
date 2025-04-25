@@ -11,7 +11,7 @@ import TheWelcome from './components/TheWelcome.vue'
 
 <style scoped>
 #app {
-  width: 100%;
+  width: 100vw;
   height: 100vh;
 }
 

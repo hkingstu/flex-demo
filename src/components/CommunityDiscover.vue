@@ -1,9 +1,20 @@
 <template>
-  <div class="discover-container">
+  <div
+    class="discover-container"
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
+  >
     <!-- 下拉刷新区域 -->
-    <div class="refresh-tip" v-show="isRefreshing || isDragging" ref="refreshTip">
+    <div
+      class="refresh-tip"
+      :style="{ transform: `translateY(${pullDistance}px)`, opacity: isDragging || isRefreshing ? 1 : 0 }"
+      v-show="isDragging || isRefreshing"
+    >
       <van-loading size="24px" v-if="isRefreshing">刷新中...</van-loading>
-      <div v-else class="refresh-text">↓ 下拉刷新</div>
+      <div v-else class="refresh-text">
+        {{ pullDistance > refreshThreshold ? '↑ 释放刷新' : '↓ 下拉刷新' }}
+      </div>
     </div>
     
     <!-- 瀑布流内容区域 -->
@@ -50,11 +61,16 @@ import MediaPlayer from './MediaPlayer.vue';
 export default {
   data() {
     return {
-      columns: [[], []], // 两列数据
+      columns: [[], []],
       page: 1,
       isLoading: false,
       isRefreshing: false,
-      allData: [] // 存储所有数据
+      allData: [],
+      // 新增下拉刷新相关
+      isDragging: false,
+      pullDistance: 0,
+      touchStartY: 0,
+      refreshThreshold: 80
     }
   },
   mounted() {
@@ -62,13 +78,41 @@ export default {
     this.setupScrollListener();
   },
   methods: {
+    // 下拉刷新事件
+    onTouchStart(e) {
+      if (window.scrollY === 0 && !this.isRefreshing) {
+        this.isDragging = true;
+        this.touchStartY = e.touches[0].clientY;
+        this.pullDistance = 0;
+      }
+    },
+    onTouchMove(e) {
+      if (!this.isDragging) return;
+      const distance = e.touches[0].clientY - this.touchStartY;
+      if (distance > 0) {
+        e.preventDefault();
+        this.pullDistance = distance > 150 ? 150 : distance;
+      } else {
+        this.isDragging = false;
+        this.pullDistance = 0;
+      }
+    },
+    onTouchEnd() {
+      if (!this.isDragging) return;
+      if (this.pullDistance > this.refreshThreshold) {
+        this.isRefreshing = true;
+        this.handleRefresh();
+      }
+      this.isDragging = false;
+      this.pullDistance = 0;
+    },
     async fetchData() {
       this.isLoading = true;
       try {
         const mockData = this.generateMockData(this.page);
         this.allData = [...this.allData, ...mockData];
         this.distributeData();
-        if(this.isRefreshing) {
+        if (this.isRefreshing) {
           Toast.success('刷新成功');
         }
       } catch (error) {
@@ -79,55 +123,6 @@ export default {
       }
     },
 
-    setupScrollListener() {
-      let touchStartY = 0;
-      let isDragging = false;
-      const refreshThreshold = 80;
-
-      document.addEventListener('touchstart', (e) => {
-        const scrollTop = document.documentElement.scrollTop;
-        if (scrollTop <= 0) {
-          touchStartY = e.touches[0].clientY;
-          isDragging = true;
-        }
-      }, { passive: true });
-
-      document.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        
-        const touchY = e.touches[0].clientY;
-        const distance = touchY - touchStartY;
-        
-        if (distance > 0 && !this.isRefreshing) {
-          e.preventDefault();
-          const progress = Math.min(distance / refreshThreshold, 1);
-          this.$refs.refreshTip.style.transform = `translateY(${distance}px)`;
-          this.$refs.refreshTip.style.opacity = progress;
-          
-          // 动态更新提示文字
-          if (distance > refreshThreshold) {
-            this.$refs.refreshTip.querySelector('.refresh-text').textContent = "↑ 释放刷新";
-          }
-        }
-      }, { passive: false });
-
-      document.addEventListener('touchend', () => {
-        if (!isDragging) return;
-        
-        isDragging = false;
-        const distance = touchY - touchStartY;
-        
-        if (distance > refreshThreshold && !this.isRefreshing) {
-          this.handleRefresh();
-        }
-        
-        // 添加动画过渡
-        this.$refs.refreshTip.style.transition = 'transform 0.3s, opacity 0.3s';
-        this.$refs.refreshTip.style.transform = '';
-        this.$refs.refreshTip.style.opacity = '';
-      });
-    },
-    
     distributeData() {
       this.columns = [[], []];
       this.allData.forEach((item, index) => {
@@ -191,7 +186,10 @@ export default {
       this.isRefreshing = true;
       this.page = 1;
       this.allData = [];
-      this.fetchData();
+      // 增加2秒定时器模拟请求
+      setTimeout(() => {
+        this.fetchData();
+      }, 2000);
     },
     
     handleItemClick(item) {
@@ -205,15 +203,41 @@ export default {
 <style scoped>
 .refresh-tip {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 12px;
+  left: 33%;
+  transform: translate(-50%, 0);
+  min-width: 140px;
+  max-width: 80vw;
+  padding: 12px 28px;
+  border-radius: 24px;
+  background: linear-gradient(90deg, #f8fafc 0%, #e0e7ef 100%);
+  box-shadow: 0 4px 16px rgba(60, 120, 240, 0.08), 0 1.5px 6px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #3a4a6b;
+  font-weight: 500;
   z-index: 100;
-  background: rgba(255,255,255,0.9);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: transform 0.3s;
+  transition: 
+    transform 0.25s cubic-bezier(.23,1.01,.32,1),
+    opacity 0.2s;
+  opacity: 1;
+  pointer-events: none;
 }
 
+.refresh-tip .van-loading {
+  margin-right: 8px;
+}
+
+.refresh-text {
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: #3a4a6b;
+  font-weight: 600;
+  text-shadow: 0 1px 2px #fff, 0 0.5px 1px #e0e7ef;
+  transition: color 0.2s;
+}
 .discover-container {
   padding-top: 40px; /* 为下拉刷新提示留出空间 */
 }
