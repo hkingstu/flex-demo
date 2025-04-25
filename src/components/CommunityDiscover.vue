@@ -32,9 +32,7 @@
               :src="item.content"
               :poster="item.poster"
               :type="item.type"
-              style="    
-  width: 187px !important;
-  height: 248px;
+              style=" 
   display: inline-block;
   position: absolute;
   top: 0px;"
