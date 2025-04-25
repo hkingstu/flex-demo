@@ -32,6 +32,12 @@
               :src="item.content"
               :poster="item.poster"
               :type="item.type"
+              style="    
+  width: 187px !important;
+  height: 248px;
+  display: inline-block;
+  position: absolute;
+  top: 0px;"
             />
             <img v-else :src="item.content" :alt="item.title">
           </div>
@@ -59,6 +65,9 @@ import { Toast } from 'vant';
 import MediaPlayer from './MediaPlayer.vue';
 
 export default {
+  components: {
+    MediaPlayer
+  },
   data() {
     return {
       columns: [[], []],
@@ -131,8 +140,8 @@ export default {
     },
     
     generateMockData(page) {
-      const types = ['image', 'video'];
-      const authors = ['游戏达人', '攻略大神', '233玩家', '电竞选手', '手游专家'];
+      const types = ['video','image'];
+      const authors = ['游戏达人', '攻略大神', '玩家', '电竞选手', '手游专家'];
       const tags = ['#新手攻略', '#装备推荐', '#关卡技巧', '#角色培养', '#活动指南'];
       const gameTitles = [
         '最新版本攻略',
