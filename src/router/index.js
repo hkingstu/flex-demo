@@ -7,8 +7,9 @@ const routes = [
     name: 'Home',
     component: Discover
   },
-  {
-    path: '/discover',
+  // 确保没有其他路由覆盖根路径
+  { 
+    path: '/:pathMatch(.*)*',
     redirect: '/'
   }
 ]

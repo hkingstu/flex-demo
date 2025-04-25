@@ -4,10 +4,17 @@ import TheWelcome from './components/TheWelcome.vue'
 </script>
 
 <template>
-  <router-view />
+  <div id="app">
+    <router-view />
+  </div>
 </template>
 
 <style scoped>
+#app {
+  width: 100%;
+  height: 100vh;
+}
+
 header {
   line-height: 1.5;
 }
